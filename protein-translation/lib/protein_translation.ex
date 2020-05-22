@@ -6,17 +6,24 @@ defmodule ProteinTranslation do
   def of_rna(rna) do
     Regex.scan(~r/.../, rna)
     |> Enum.map(fn [x] -> of_codon(x) end)
-    |> Enum.reduce({:cont, []}, &reduce/2)
+    |> Enum.reduce_while([], &reduce/2)
     |> finalize()
   end
 
-  defp reduce({:ok, "STOP"}, {:cont, cs}), do: {:ok, cs}
-  defp reduce({:ok, c}, {:cont, cs}), do: {:cont, cs ++ [c]}
-  defp reduce(_, {:ok, cs}), do: {:ok, cs}
-  defp reduce(_, _), do: {:error, "invalid RNA"}
+  defp reduce(codon, xs) do
+    case codon do
+      {:ok, "STOP"} -> {:halt, xs}
+      {:ok, x} -> {:cont, xs ++ [x]}
+      _ -> {:halt, :invalid}
+    end
+  end
 
-  defp finalize({:cont, cs}), do: {:ok, cs}
-  defp finalize(x), do: x
+  defp finalize(xs) do
+    case xs do
+      :invalid -> {:error, "invalid RNA"}
+      _ -> {:ok, xs}
+    end
+  end
 
   @doc """
   Given a codon, return the corresponding protein
