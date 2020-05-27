@@ -1,28 +1,40 @@
 defmodule RobotSimulator do
+  defguard is_direction(direction)
+           when direction in [:north, :east, :south, :west]
+
   @doc """
   Create a Robot Simulator given an initial direction and position.
 
   Valid directions are: `:north`, `:east`, `:south`, `:west`
   """
   @spec create(direction :: atom, position :: {integer, integer}) :: any
-  def create(direction \\ :north, position \\ {0, 0}) do
-    cond do
-      not is_valid_direction?(direction) -> {:error, "invalid direction"}
-      not is_valid_position?(position) -> {:error, "invalid position"}
-      true -> {:robot, direction, position}
-    end
-  end
+  def create(direction \\ :north, position \\ {0, 0})
 
-  defp is_valid_direction?(direction) do
-    direction in [:north, :east, :south, :west]
-  end
+  def create(direction, {x, y})
+      when is_direction(direction) and is_integer(x) and is_integer(y),
+      do: {:robot, from_direction(direction), {x, y}}
 
-  defp is_valid_position?(position) do
-    case position do
-      {x, y} -> is_integer(x) && is_integer(y)
-      _ -> false
-    end
-  end
+  def create(direction, _) when not is_direction(direction),
+    do: {:error, "invalid direction"}
+
+  def create(_, _),
+    do: {:error, "invalid position"}
+
+  @doc """
+  Encode a direction symbol to a vector.
+  """
+  defp from_direction(:north), do: {0, 1}
+  defp from_direction(:east), do: {1, 0}
+  defp from_direction(:south), do: {0, -1}
+  defp from_direction(:west), do: {-1, 0}
+
+  @doc """
+  Decode a vector to a direction.
+  """
+  defp to_direction({0, 1}), do: :north
+  defp to_direction({1, 0}), do: :east
+  defp to_direction({0, -1}), do: :south
+  defp to_direction({-1, 0}), do: :west
 
   @doc """
   Simulate the robot's movement given a string of instructions.
@@ -36,42 +48,11 @@ defmodule RobotSimulator do
     |> Enum.reduce(robot, &move/2)
   end
 
-  defp move(char, robot) do
-    case robot do
-      {:robot, direction, position} ->
-        case char do
-          "A" ->
-            case {direction, position} do
-              {:north, {x, y}} -> {:robot, direction, {x, y + 1}}
-              {:east, {x, y}} -> {:robot, direction, {x + 1, y}}
-              {:south, {x, y}} -> {:robot, direction, {x, y - 1}}
-              {:west, {x, y}} -> {:robot, direction, {x - 1, y}}
-            end
-
-          "L" ->
-            case direction do
-              :north -> {:robot, :west, position}
-              :west -> {:robot, :south, position}
-              :south -> {:robot, :east, position}
-              :east -> {:robot, :north, position}
-            end
-
-          "R" ->
-            case direction do
-              :north -> {:robot, :east, position}
-              :west -> {:robot, :north, position}
-              :south -> {:robot, :west, position}
-              :east -> {:robot, :south, position}
-            end
-
-          _ ->
-            {:error, "invalid instruction"}
-        end
-
-      _ ->
-        robot
-    end
-  end
+  defp move("A", {:robot, {dx, dy}, {x, y}}), do: {:robot, {dx, dy}, {x + dx, y + dy}}
+  defp move("L", {:robot, {dx, dy}, position}), do: {:robot, {-dy, dx}, position}
+  defp move("R", {:robot, {dx, dy}, position}), do: {:robot, {dy, -dx}, position}
+  defp move(_, {:robot, _, _}), do: {:error, "invalid instruction"}
+  defp move(_, x), do: x
 
   @doc """
   Return the robot's direction.
@@ -79,8 +60,8 @@ defmodule RobotSimulator do
   Valid directions are: `:north`, `:east`, `:south`, `:west`
   """
   @spec direction(robot :: any) :: atom
-  def direction({:robot, direction, _}) do
-    direction
+  def direction({:robot, vector, _}) do
+    to_direction(vector)
   end
 
   @doc """
