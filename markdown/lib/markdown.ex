@@ -26,36 +26,36 @@ defmodule Markdown do
     symbol(some(chunk("#")))
     |> bind(fn n ->
       line()
-      |> fmap(&tag(&1, "h#{length(n)}"))
+      |> fmap(tag("h#{length(n)}"))
     end)
   end
 
   defp list() do
     some(list_item())
-    |> fmap(&tag(Enum.join(&1), "ul"))
+    |> fmap(&tag("ul").(Enum.join(&1)))
   end
 
   defp list_item() do
     symbol(chunk("*"))
     |> bind(fn _ ->
       line()
-      |> fmap(&tag(&1, "li"))
+      |> fmap(tag("li"))
     end)
   end
 
   defp paragraph() do
     line()
-    |> fmap(&tag(&1, "p"))
+    |> fmap(tag("p"))
   end
 
   defp strong() do
     between(chunk("__"), text())
-    |> fmap(&tag(&1, "strong"))
+    |> fmap(tag("strong"))
   end
 
   defp italic() do
     between(chunk("_"), text())
-    |> fmap(&tag(&1, "em"))
+    |> fmap(tag("em"))
   end
 
   defp line() do
@@ -98,8 +98,10 @@ defmodule Markdown do
 
   # helper functions
 
-  defp tag(text, key) do
-    "<#{key}>#{text}</#{key}>"
+  defp tag(key) do
+    fn text ->
+      "<#{key}>#{text}</#{key}>"
+    end
   end
 
   # parser monad
