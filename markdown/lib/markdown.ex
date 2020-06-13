@@ -178,14 +178,19 @@ defmodule Markdown do
   end
 
   # chunk :: a -> m a
-  defp chunk(cs) do
+  defp chunk(x) do
     fn str ->
-      {x, xs} = String.split_at(str, String.length(cs))
-      if x == cs, do: {x, xs}, else: :fail
+      case String.split_at(str, String.length(x)) do
+        {^x, xs} -> {x, xs}
+        _ -> :fail
+      end
     end
   end
 
   defp eof() do
-    fn str -> if str == "", do: {nil, str}, else: :fail end
+    fn
+      "" -> {nil, ""}
+      _ -> :fail
+    end
   end
 end
